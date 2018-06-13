@@ -1,15 +1,53 @@
-'use strict';
+const { Kinesis } = require("aws-sdk");
+const uuid = require("uuid/v4");
 
-var fs = require('fs');
-var path = require('path');
+const { chunk, mergeResponses, success, fail } = require("./utils");
 
-exports.get = function(event, context, callback) {
-  var contents = fs.readFileSync(`public${path.sep}index.html`);
-  var result = {
-    statusCode: 200,
-    body: contents.toString(),
-    headers: {'content-type': 'text/html'}
-  };
+const kinesis = new Kinesis();
 
-  callback(null, result);
+const STREAM_NAME = "lambda-bm";
+const CHUNK_SIZE = 500;
+
+const track = body =>
+  Promise.resolve(body)
+    .then(body => ({ ...JSON.parse(body), receivedAt: new Date() }))
+    .then(tracking =>
+      kinesis
+        .putRecord({
+          Data: JSON.stringify(tracking),
+          PartitionKey: uuid(),
+          StreamName: STREAM_NAME
+        })
+        .promise()
+    )
+    .then(response => success(response))
+    .catch(err => fail(err));
+
+const bulk = body =>
+  Promise.resolve(body)
+    .then(body => ({ ...JSON.parse(body), receivedAt: new Date() }))
+    .then(({ Records, receivedAt }) =>
+      Records.map(record => ({
+        Data: JSON.stringify({ ...record, receivedAt }),
+        PartitionKey: uuid()
+      }))
+    )
+    .then(records => chunk(records, CHUNK_SIZE))
+    .then(chunks =>
+      chunks.map(Records =>
+        kinesis.putRecords({ Records, StreamName: STREAM_NAME }).promise()
+      )
+    )
+    .then(promises => Promise.all(promises))
+    .then(responses => mergeResponses(responses))
+    .then(response => success(response))
+    .catch(err => fail(err));
+
+const router = {
+  "/track": track,
+  "/track/bulk": bulk
 };
+
+const handler = ({ path, body }) => router[path](body);
+
+module.exports = { handler };

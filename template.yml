@@ -19,17 +19,22 @@ Parameters:
 #       Type: Canary10Percent5Minutes
 
 Resources:
-  GetHelloWorld:
+  Tracker:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: index.get
-      Runtime: nodejs4.3
+      Handler: index.handler
+      Runtime: nodejs8.10
       Role:
         Fn::ImportValue:
           !Join ['-', [!Ref 'ProjectId', !Ref 'AWS::Region', 'LambdaTrustRole']]
       Events:
-        GetEvent:
+        Track:
           Type: Api
           Properties:
-            Path: /
-            Method: get
+            Path: /track
+            Method: post
+        BulkTrack:
+          Type: Api
+          Properties:
+            Path: /track/bulk
+            Method: post
