@@ -14,11 +14,11 @@ config:
       target: 'https://oa9ccsycs3.execute-api.us-east-1.amazonaws.com/Prod'
       phases:
         - duration: 300
-          arrivalRate: 10
-          rampTo: 100
+          arrivalRate: 5
+          rampTo: 25
           name: "Warm up the application"
         - duration: 600
-          arrivalRate: 100
+          arrivalRate: 25
           name: "Sustained max load"
 
 scenarios:
