@@ -1,0 +1,33 @@
+config:
+  environments:
+    development:
+      target: 'https://oa9ccsycs3.execute-api.us-east-1.amazonaws.com/Stage'
+      phases:
+        - duration: 30
+          arrivalRate: 1
+          rampTo: 10
+          name: "Warm up the application"
+        - duration: 30
+          arrivalRate: 10
+          name: "Sustained max load"
+    production:
+      target: 'https://oa9ccsycs3.execute-api.us-east-1.amazonaws.com/Prod'
+      phases:
+        - duration: 300
+          arrivalRate: 100
+          name: "Spike 1"
+        - pause: 60
+        - duration: 300
+          arrivalRate: 100
+          name: "Spike 2"
+        - pause: 60
+        - duration: 300
+          arrivalRate: 100
+          name: "Spike 3" 
+
+scenarios:
+  - flow:
+    - post:
+        url: "/track"
+        json:
+          action: buy
